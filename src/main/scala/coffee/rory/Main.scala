@@ -3,6 +3,7 @@ import java.io.File
 import java.nio.file.{Files, Paths}
 
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.{SparkConf, SparkContext}
 import org.bitcoinj.core.{Address, Block, Context, NetworkParameters, ScriptException, Transaction => JTransaction}
 import org.bitcoinj.params.MainNetParams
@@ -106,8 +107,8 @@ object Main {
     transactionIterator.flatten
   }
   def main(args: Array[String]) = {
-    val conf = new SparkConf().setAppName(SPARK_APP_NAME)
-    val sc = new SparkContext(conf)
+    val spark = SparkSession.builder().appName(SPARK_APP_NAME).getOrCreate()
+    val sc = spark.sparkContext
     sc.setCheckpointDir(CHECKPOINT_DIR)
     val blockFilePaths: RDD[String] = sc.parallelize(getBlockFilePaths)
 
@@ -121,6 +122,6 @@ object Main {
     jsonTransactions
     .saveAsTextFile(OUT_DIR)
 
-    sc.stop()
+    spark.stop()
   }
 }
