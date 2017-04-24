@@ -80,7 +80,8 @@ class TransactionIterator(blockIterator: Iterator[Block], netParams: NetworkPara
 
 object Main {
   val SPARK_APP_NAME="TransactionParser"
-  val DRIVE_PATH="/Volumes/Seagate Backup Plus Drive"
+  //val DRIVE_PATH="/Volumes/Seagate Backup Plus Drive"
+  val DRIVE_PATH="/root/Bitcoin"
   val DAT_DIR=s"$DRIVE_PATH/datfiles"
   val OUT_DIR = s"$DRIVE_PATH/json/$SPARK_APP_NAME"
   val CHECKPOINT_DIR = s"$DRIVE_PATH/checkpoints"
