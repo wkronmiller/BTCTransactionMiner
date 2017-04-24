@@ -80,8 +80,10 @@ class TransactionIterator(blockIterator: Iterator[Block], netParams: NetworkPara
 
 object Main {
   val SPARK_APP_NAME="TransactionParser"
-  val DAT_DIR="/Volumes/Seagate Backup Plus Drive/datfiles"
-  val OUT_DIR = s"/Volumes/Seagate Backup Plus Drive/json/$SPARK_APP_NAME"
+  val DRIVE_PATH="/Volumes/Seagate Backup Plus Drive"
+  val DAT_DIR=s"$DRIVE_PATH/datfiles"
+  val OUT_DIR = s"$DRIVE_PATH/json/$SPARK_APP_NAME"
+  val CHECKPOINT_DIR = s"$DRIVE_PATH/checkpoints"
   val DAT_EXTENSION=".dat"
   def getBlockFilePaths: Array[String] = {
     new File(DAT_DIR)
@@ -104,7 +106,7 @@ object Main {
   def main(args: Array[String]) = {
     val conf = new SparkConf().setAppName(SPARK_APP_NAME).setMaster("local[*]")
     val sc = new SparkContext(conf)
-    sc.setCheckpointDir("./")
+    sc.setCheckpointDir(CHECKPOINT_DIR)
     val blockFilePaths: RDD[String] = sc.parallelize(getBlockFilePaths)
 
     blockFilePaths.checkpoint()
