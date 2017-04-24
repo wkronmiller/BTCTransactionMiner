@@ -8,7 +8,7 @@ import org.bitcoinj.core.{Address, Block, Context, NetworkParameters, ScriptExce
 import org.bitcoinj.params.MainNetParams
 import org.bitcoinj.utils.BlockFileLoader
 import org.json4s.{Formats, JValue, NoTypeHints, Serializer}
-import org.json4s.native.Serialization
+import org.json4s.jackson.Serialization
 
 import scala.collection.JavaConverters._
 
