@@ -1,3 +1,4 @@
+package coffee.rory
 import java.io.File
 import java.nio.file.{Files, Paths}
 
@@ -105,7 +106,7 @@ object Main {
     transactionIterator.flatten
   }
   def main(args: Array[String]) = {
-    val conf = new SparkConf().setAppName(SPARK_APP_NAME).setMaster("local[*]")
+    val conf = new SparkConf().setAppName(SPARK_APP_NAME)
     val sc = new SparkContext(conf)
     sc.setCheckpointDir(CHECKPOINT_DIR)
     val blockFilePaths: RDD[String] = sc.parallelize(getBlockFilePaths)
