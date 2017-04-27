@@ -22,6 +22,9 @@ case class Transaction(inputs: Set[Address], outputs: Set[Address]) {
     val map = ("inputs" -> inputs.map(extractAddress).toList, "outputs" -> outputs.map(extractAddress).toList)
     Serialization.write(map)
   }
+	def toIOString: String = {
+		s"${inputs.map(extractAddress).toList.mkString(",")};${outputs.map(extractAddress).toList.mkString(",")}"
+	} 
 }
 
 /**
@@ -81,7 +84,7 @@ class TransactionIterator(blockIterator: Iterator[Block], netParams: NetworkPara
 }
 
 object Main {
-  val SPARK_APP_NAME="TransactionParser"
+  val SPARK_APP_NAME="TransactionParser2"
   //val DRIVE_PATH="/Volumes/Seagate Backup Plus Drive"
   val DRIVE_PATH="/root/Bitcoin"
   val DAT_DIR=s"$DRIVE_PATH/datfiles"
@@ -116,7 +119,7 @@ object Main {
     val jsonTransactions = blockFilePaths
       .repartition(10)
       .mapPartitions(loadBlocks)
-      .map(_.toJSON)
+      .map(_.toIOString)
 
     jsonTransactions.checkpoint()
     jsonTransactions
