@@ -5,7 +5,7 @@ import java.nio.file.{Files, Paths}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.{SparkConf, SparkContext}
-import org.bitcoinj.core.{Address, Block, Context, NetworkParameters, ScriptException, Transaction => JTransaction}
+import org.bitcoinj.core.{Address, Base58, Block, Context, NetworkParameters, ScriptException, Transaction => JTransaction}
 import org.bitcoinj.params.MainNetParams
 import org.bitcoinj.utils.BlockFileLoader
 import org.json4s.{Formats, JValue, NoTypeHints, Serializer}
@@ -15,7 +15,7 @@ import scala.collection.JavaConverters._
 
 case class Transaction(inputs: Set[Address], outputs: Set[Address]) {
   private def extractAddress(address: Address): String = {
-    address.toBase58
+    Base58.decodeToBigInteger(address.toBase58).toString(16)
   }
   def toJSON: String = {
     implicit val formats = Serialization.formats(NoTypeHints)
@@ -84,7 +84,7 @@ class TransactionIterator(blockIterator: Iterator[Block], netParams: NetworkPara
 }
 
 object Main {
-  val SPARK_APP_NAME="TransactionParser2"
+  val SPARK_APP_NAME="TransactionParser3"
   //val DRIVE_PATH="/Volumes/Seagate Backup Plus Drive"
   val DRIVE_PATH="/root/Bitcoin"
   val DAT_DIR=s"$DRIVE_PATH/datfiles"
