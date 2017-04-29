@@ -46,7 +46,7 @@ object MinerMain {
       .values
 
     //NOTE: I think this works as I cannot find a counter-example, but it feels icky
-    val transactionGroups = partialGroups
+    /*val transactionGroups = partialGroups
       .cartesian(partialGroups)
       .filter{case (a,b) => a.intersect(b).size > 0}
       .map{case(a,b) =>
@@ -59,7 +59,12 @@ object MinerMain {
       .map(values => (values.min, values))
       .reduceByKey(_ union _)
       .values
-      .zipWithUniqueId()
+      .zipWithUniqueId()*/
+
+    val transactionGroupList = partialGroups.flatMap(txns => txns.map(txn =>(txn, txns)))
+    val transactionGroups = transactionGroupList
+      .join(transactionGroupList)
+      .mapValues{case (a,b) => a union b}.filter{case (k, v) => k == v.min}.values.zipWithUniqueId()
 
     val flippedTransactions: RDD[(TxnId, (StringArray, StringArray))] = transactions.map{case(addrs, txnId) => (txnId, addrs)}
 
