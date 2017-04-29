@@ -21,11 +21,19 @@ object MinerMain {
     sc.setLogLevel("ERROR")
     val Array(checkpointDir, sourceDir, sinkDir) = args
     sc.setCheckpointDir(checkpointDir)
-    val transactions: RDD[((StringArray, StringArray), TxnId)] = sc.parallelize(sc.textFile(sourceDir).take(500))
+    val transactions: RDD[((StringArray, StringArray), TxnId)] = sc.parallelize(sc.textFile(sourceDir).take(20000))
+      .map(_.trim).filter(_.size > 0).filter(_.contains(";"))
       .map{transaction =>
-          val Array(inputs, outputs) = transaction.split(";").map(_.split(","))
-        (inputs, outputs)
-      }
+        try {
+          val Array(inputs, outputs) = s" $transaction".split(";").map(_.trim.split(","))
+          Some((inputs, outputs))
+        } catch {
+          case e: Exception => {
+            System.err.println(s"Failed to parse: '$transaction'")
+            None
+          }
+        }
+      }.filter(_.isDefined).map(_.get)
       .zipWithUniqueId()
       .cache()
     // Transactions associated on a per-input basis
@@ -83,8 +91,6 @@ object MinerMain {
         val countString = countMap.map{case (otherGroup, normedCount) => s"$otherGroup:$normedCount"}.mkString(",")
         s"$groupId;$countString"
     }
-
-    println(s"Group referneces: ${groupReferences.take(100).toList}") //TODO: save results
 
     groupReferences.saveAsTextFile(sinkDir)
     sc.stop()
