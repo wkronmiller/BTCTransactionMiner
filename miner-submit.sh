@@ -1,6 +1,7 @@
 #!/bin/bash
 SOURCE_DIR=/mnt/ebsmag1/TransactionParser3
-SINK_DIR=s3a://wrkronmiller-public/bitcoin/groups
+SINK_DIR=/mnt/ebsmag1/groups
+#SINK_DIR=s3a://wrkronmiller-public/bitcoin/groups
 CHECKPOINT_DIR=/mnt/ebsmag1/checkpoints
 sbt assembly && clear && spark-submit --class "coffee.rory.transaction_grouper.MinerMain" \
     --master local[*] \

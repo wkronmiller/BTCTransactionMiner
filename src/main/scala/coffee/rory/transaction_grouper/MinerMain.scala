@@ -19,9 +19,9 @@ object MinerMain {
     val spark = SparkSession.builder().appName(SPARK_APP_NAME).getOrCreate()
     val sc = spark.sparkContext
     sc.setLogLevel("ERROR")
-    val Array(checkpoint_dir, source_dir, sink_dir) = args
-    sc.setCheckpointDir(checkpoint_dir)
-    val transactions: RDD[((StringArray, StringArray), TxnId)] = sc.textFile(source_dir)
+    val Array(checkpointDir, sourceDir, sinkDir) = args
+    sc.setCheckpointDir(checkpointDir)
+    val transactions: RDD[((StringArray, StringArray), TxnId)] = sc.parallelize(sc.textFile(sourceDir).take(500))
       .map{transaction =>
           val Array(inputs, outputs) = transaction.split(";").map(_.split(","))
         (inputs, outputs)
@@ -74,9 +74,19 @@ object MinerMain {
       .join(inGroups)
       .map{case (_, (outGroup, inGroup)) => (outGroup, Seq((inGroup, 1)))}
       .reduceByKey(_ ++ _)
-      .mapValues(_.groupBy(_._1).mapValues(_.map(_._2).reduce(_ + _)).map(identity)) //TODO: normalize counts
+      .mapValues(_.groupBy(_._1).mapValues(_.map(_._2).reduce(_ + _)).map(identity))
+      .mapValues{countMap =>
+        val countSum = countMap.values.sum
+        countMap.mapValues(_.toDouble / countSum).map(identity)
+      }
+    .map{case (groupId, countMap) =>
+        val countString = countMap.map{case (otherGroup, normedCount) => s"$otherGroup:$normedCount"}.mkString(",")
+        s"$groupId;$countString"
+    }
 
     println(s"Group referneces: ${groupReferences.take(100).toList}") //TODO: save results
+
+    groupReferences.saveAsTextFile(sinkDir)
     sc.stop()
   }
 }
