@@ -1,14 +1,13 @@
-package coffee.rory
+package coffee.rory.datparser
+
 import java.io.File
-import java.nio.file.{Files, Paths}
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.{SparkConf, SparkContext}
 import org.bitcoinj.core.{Address, Base58, Block, Context, NetworkParameters, ScriptException, Transaction => JTransaction}
 import org.bitcoinj.params.MainNetParams
 import org.bitcoinj.utils.BlockFileLoader
-import org.json4s.{Formats, JValue, NoTypeHints, Serializer}
+import org.json4s.NoTypeHints
 import org.json4s.jackson.Serialization
 
 import scala.collection.JavaConverters._
