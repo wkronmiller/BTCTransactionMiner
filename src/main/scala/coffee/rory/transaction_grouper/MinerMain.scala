@@ -21,7 +21,7 @@ object MinerMain {
     sc.setLogLevel("ERROR")
     val Array(checkpointDir, sourceDir, sinkDir) = args
     sc.setCheckpointDir(checkpointDir)
-    val transactions: RDD[((StringArray, StringArray), TxnId)] = sc.parallelize(sc.textFile(sourceDir).take(20000))
+    val transactions: RDD[((StringArray, StringArray), TxnId)] = sc.parallelize(sc.textFile(sourceDir).take(200000))
       .map(_.trim).filter(_.size > 0).filter(_.contains(";"))
       .map{transaction =>
         try {
@@ -45,27 +45,10 @@ object MinerMain {
       .reduceByKey(_ ++ _)
       .values
 
-    //NOTE: I think this works as I cannot find a counter-example, but it feels icky
-    /*val transactionGroups = partialGroups
-      .cartesian(partialGroups)
-      .filter{case (a,b) => a.intersect(b).size > 0}
-      .map{case(a,b) =>
-        val union = a.union(b)
-        (union.min, union)
-      }
-      .reduceByKey(_ union _)
-      .values
-      // Just to be safe
-      .map(values => (values.min, values))
-      .reduceByKey(_ union _)
-      .values
-      .zipWithUniqueId()*/
-
-    val transactionGroupList = partialGroups.flatMap(txns => txns.map(txn =>(txn, txns)))
-    val transactionGroups = transactionGroupList
-      .join(transactionGroupList)
-      .mapValues{case (a,b) => a union b}
+    val transactionGroups = partialGroups
+      .flatMap(txns => txns.map(txn =>(txn, txns)))
       .reduceByKey{case (a,b) => a union b}
+      //TODO: might need another set of flatMap and reduceByKey operations
       .filter{case (k, v) => k == v.min}.values.zipWithUniqueId()
 
     val flippedTransactions: RDD[(TxnId, (StringArray, StringArray))] = transactions.map{case(addrs, txnId) => (txnId, addrs)}
