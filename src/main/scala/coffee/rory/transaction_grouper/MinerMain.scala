@@ -21,7 +21,7 @@ object MinerMain {
     sc.setLogLevel("ERROR")
     val Array(checkpoint_dir, source_dir, sink_dir) = args
     sc.setCheckpointDir(checkpoint_dir)
-    val transactions: RDD[((StringArray, StringArray), TxnId)] = sc.parallelize(sc.textFile(source_dir).take(500))//TODO: remove take()
+    val transactions: RDD[((StringArray, StringArray), TxnId)] = sc.textFile(source_dir)
       .map{transaction =>
           val Array(inputs, outputs) = transaction.split(";").map(_.split(","))
         (inputs, outputs)
@@ -53,7 +53,7 @@ object MinerMain {
       .values
       .zipWithUniqueId()
 
-    val flippedTransactions: RDD[(TxnId, (StringArray, StringArray)] = transactions.map{case(addrs, txnId) => (txnId, addrs)}
+    val flippedTransactions: RDD[(TxnId, (StringArray, StringArray))] = transactions.map{case(addrs, txnId) => (txnId, addrs)}
 
     val groupedTransactions = transactionGroups
       .flatMap{case (txnIds, groupId) =>
@@ -74,11 +74,9 @@ object MinerMain {
       .join(inGroups)
       .map{case (_, (outGroup, inGroup)) => (outGroup, Seq((inGroup, 1)))}
       .reduceByKey(_ ++ _)
-      .mapValues(_.groupBy(_._1).mapValues(_.map(_._2).reduce(_ + _))) //TODO: normalize
+      .mapValues(_.groupBy(_._1).mapValues(_.map(_._2).reduce(_ + _)).map(identity)) //TODO: normalize counts
 
-    println(s"Group referneces: ${groupReferences.take(3)}") //TODO: save results
-
-
+    println(s"Group referneces: ${groupReferences.take(100).toList}") //TODO: save results
     sc.stop()
   }
 }
