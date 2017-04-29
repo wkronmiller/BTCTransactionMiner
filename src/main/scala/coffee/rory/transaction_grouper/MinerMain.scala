@@ -64,7 +64,9 @@ object MinerMain {
     val transactionGroupList = partialGroups.flatMap(txns => txns.map(txn =>(txn, txns)))
     val transactionGroups = transactionGroupList
       .join(transactionGroupList)
-      .mapValues{case (a,b) => a union b}.filter{case (k, v) => k == v.min}.values.zipWithUniqueId()
+      .mapValues{case (a,b) => a union b}
+      .reduceByKey{case (a,b) => a union b}
+      .filter{case (k, v) => k == v.min}.values.zipWithUniqueId()
 
     val flippedTransactions: RDD[(TxnId, (StringArray, StringArray))] = transactions.map{case(addrs, txnId) => (txnId, addrs)}
 
