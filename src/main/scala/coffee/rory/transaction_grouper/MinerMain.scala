@@ -10,7 +10,7 @@ import org.apache.spark.sql.SparkSession
   */
 object MinerMain {
   val SPARK_APP_NAME = "TransactionGrouper"
-  type StringArray=Array[String]
+  type AddressArray = Array[BigInteger]
   type TxnId = Long
   type TxnGroupId = Long
   type Address = String
@@ -21,11 +21,11 @@ object MinerMain {
     sc.setLogLevel("ERROR")
     val Array(checkpointDir, sourceDir, sinkDir) = args
     sc.setCheckpointDir(checkpointDir)
-    val transactions: RDD[((StringArray, StringArray), TxnId)] = sc.parallelize(sc.textFile(sourceDir).take(500))
+    val transactions: RDD[((Array[BigInteger], Array[BigInteger]), TxnGroupId)] = sc.parallelize(sc.textFile(sourceDir).take(500))
       .map(_.trim).filter(_.size > 0).filter(_.contains(";"))
       .map{transaction =>
         try {
-          val Array(inputs, outputs) = s" $transaction ".split(";").map(_.trim.split(","))
+          val Array(inputs, outputs) = s" $transaction ".split(";").map(_.trim.split(",").map(hex => new BigInteger(hex, 16)))
           Some((inputs, outputs))
         } catch {
           case e: Exception => {
@@ -51,9 +51,9 @@ object MinerMain {
       //TODO: might need another set of flatMap and reduceByKey operations
       .filter{case (k, v) => k == v.min}
 
-    val flippedTransactions: RDD[(TxnId, (StringArray, StringArray))] = transactions.map{case(addrs, txnId) => (txnId, addrs)}
+    val flippedTransactions: RDD[(TxnId, (AddressArray, AddressArray))] = transactions.map{case(addrs, txnId) => (txnId, addrs)}
 
-	flippedTransactions.take(10).foreach(println)
+	  println(s"Flipped txns: ${flippedTransactions.takeOrdered(10)}")
 
     val groupedTransactions = transactionGroups
       .flatMap{case (groupId, txnIds) =>
@@ -66,13 +66,19 @@ object MinerMain {
       // Remove self-references
       .mapValues{case(inAddrs, outAddrs) => (inAddrs diff outAddrs, outAddrs)}
 
+    println(s"Grouped txns: ${groupedTransactions.takeOrdered(10)}")
+
     // Count group-group references
     val inGroups = groupedTransactions.flatMap{case (groupId, (inputs, _)) => inputs.map(input => (input, groupId))}
     val outGroups = groupedTransactions.flatMap{case (groupId, (_, outputs)) => outputs.map(output => (output, groupId))}
 
     val groupReferences = outGroups
-      .join(inGroups)
-      .map{case (_, (outGroup, inGroup)) => (outGroup, Seq((inGroup, 1)))}
+      .fullOuterJoin(inGroups)
+      .map{
+        case (_, (Some(outGroup), Some(inGroup))) => (outGroup, Seq((inGroup, 1)))
+        case (_, (Some(outGroup), None)) => (outGroup, Seq())
+        case (_, (None, Some(inGroup))) => (inGroup, Seq())
+      }
       .reduceByKey(_ ++ _)
       .mapValues(_.groupBy(_._1).mapValues(_.map(_._2).reduce(_ + _)).map(identity))
       .mapValues{countMap =>
