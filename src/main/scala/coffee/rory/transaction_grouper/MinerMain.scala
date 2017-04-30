@@ -21,7 +21,7 @@ object MinerMain {
     sc.setLogLevel("ERROR")
     val Array(checkpointDir, sourceDir, sinkDir) = args
     sc.setCheckpointDir(checkpointDir)
-    val transactions: RDD[((Array[BigInteger], Array[BigInteger]), TxnGroupId)] = sc.parallelize(sc.textFile(sourceDir).take(500))
+    val transactions: RDD[((Array[BigInteger], Array[BigInteger]), TxnGroupId)] = sc.parallelize(sc.textFile(sourceDir).take(200000))
       .map(_.trim).filter(_.size > 0).filter(_.contains(";"))
       .map{transaction =>
         try {
@@ -29,7 +29,7 @@ object MinerMain {
           Some((inputs, outputs))
         } catch {
           case e: Exception => {
-            System.err.println(s"Failed to parse: '$transaction'")
+            System.err.println(s"Failed to parse: '$transaction', $e")
             None
           }
         }
@@ -53,8 +53,6 @@ object MinerMain {
 
     val flippedTransactions: RDD[(TxnId, (AddressArray, AddressArray))] = transactions.map{case(addrs, txnId) => (txnId, addrs)}
 
-	  println(s"Flipped txns: ${flippedTransactions.takeOrdered(10)}")
-
     val groupedTransactions = transactionGroups
       .flatMap{case (groupId, txnIds) =>
         txnIds.map(txnId => (txnId, groupId))
@@ -65,8 +63,6 @@ object MinerMain {
       .reduceByKey{case ((inOne, outOne), (inTwo, outTwo)) => (inOne ++ inTwo, outOne ++ outTwo)}
       // Remove self-references
       .mapValues{case(inAddrs, outAddrs) => (inAddrs diff outAddrs, outAddrs)}
-
-    println(s"Grouped txns: ${groupedTransactions.takeOrdered(10)}")
 
     // Count group-group references
     val inGroups = groupedTransactions.flatMap{case (groupId, (inputs, _)) => inputs.map(input => (input, groupId))}
