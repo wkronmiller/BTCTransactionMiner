@@ -25,7 +25,7 @@ object MinerMain {
       .map(_.trim).filter(_.size > 0).filter(_.contains(";"))
       .map{transaction =>
         try {
-          val Array(inputs, outputs) = s" $transaction ".split(";").map(_.trim.split(",").map(hex => new BigInteger(hex, 16)))
+          val Array(inputs, outputs) = s" $transaction ".split(";").map(_.trim.split(",").filter(_.size > 0).map(hex => new BigInteger(hex, 16)))
           Some((inputs, outputs))
         } catch {
           case e: Exception => {
