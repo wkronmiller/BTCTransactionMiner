@@ -21,7 +21,7 @@ object MinerMain {
     sc.setLogLevel("ERROR")
     val Array(checkpointDir, sourceDir, sinkDir) = args
     sc.setCheckpointDir(checkpointDir)
-    val transactions: RDD[((StringArray, StringArray), TxnId)] = sc.parallelize(sc.textFile(sourceDir).take(500000))
+    val transactions: RDD[((StringArray, StringArray), TxnId)] = sc.parallelize(sc.textFile(sourceDir).take(500))
       .map(_.trim).filter(_.size > 0).filter(_.contains(";"))
       .map{transaction =>
         try {
@@ -52,6 +52,8 @@ object MinerMain {
       .filter{case (k, v) => k == v.min}
 
     val flippedTransactions: RDD[(TxnId, (StringArray, StringArray))] = transactions.map{case(addrs, txnId) => (txnId, addrs)}
+
+	flippedTransactions.take(10).foreach(println)
 
     val groupedTransactions = transactionGroups
       .flatMap{case (groupId, txnIds) =>
