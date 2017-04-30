@@ -21,11 +21,11 @@ object MinerMain {
     sc.setLogLevel("ERROR")
     val Array(checkpointDir, sourceDir, sinkDir) = args
     sc.setCheckpointDir(checkpointDir)
-    val transactions: RDD[((StringArray, StringArray), TxnId)] = sc.parallelize(sc.textFile(sourceDir).take(200000))
+    val transactions: RDD[((StringArray, StringArray), TxnId)] = sc.textFile(sourceDir)
       .map(_.trim).filter(_.size > 0).filter(_.contains(";"))
       .map{transaction =>
         try {
-          val Array(inputs, outputs) = s" $transaction".split(";").map(_.trim.split(","))
+          val Array(inputs, outputs) = s" $transaction ".split(";").map(_.trim.split(","))
           Some((inputs, outputs))
         } catch {
           case e: Exception => {
