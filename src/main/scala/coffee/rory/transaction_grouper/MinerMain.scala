@@ -21,7 +21,7 @@ object MinerMain {
     sc.setLogLevel("ERROR")
     val Array(checkpointDir, sourceDir, sinkDir) = args
     sc.setCheckpointDir(checkpointDir)
-    val transactions: RDD[((StringArray, StringArray), TxnId)] = sc.textFile(sourceDir)
+    val transactions: RDD[((StringArray, StringArray), TxnId)] = sc.parallelize(sc.textFile(sourceDir).take(500000))
       .map(_.trim).filter(_.size > 0).filter(_.contains(";"))
       .map{transaction =>
         try {
@@ -49,16 +49,16 @@ object MinerMain {
       .flatMap(txns => txns.map(txn =>(txn, txns)))
       .reduceByKey{case (a,b) => a union b}
       //TODO: might need another set of flatMap and reduceByKey operations
-      .filter{case (k, v) => k == v.min}.values.zipWithUniqueId()
+      .filter{case (k, v) => k == v.min}
 
     val flippedTransactions: RDD[(TxnId, (StringArray, StringArray))] = transactions.map{case(addrs, txnId) => (txnId, addrs)}
 
     val groupedTransactions = transactionGroups
-      .flatMap{case (txnIds, groupId) =>
+      .flatMap{case (groupId, txnIds) =>
         txnIds.map(txnId => (txnId, groupId))
       }
-      .join(flippedTransactions)
-      .map{case (_, (groupId, (inAddrs, outAddrs))) => (groupId, (inAddrs.toSet, outAddrs.toSet))}
+      .rightOuterJoin(flippedTransactions)
+      .map{case (txnId, (groupId, (inAddrs, outAddrs))) => (groupId.getOrElse(txnId), (inAddrs.toSet, outAddrs.toSet))}
       // Combine all addresses for group
       .reduceByKey{case ((inOne, outOne), (inTwo, outTwo)) => (inOne ++ inTwo, outOne ++ outTwo)}
       // Remove self-references
